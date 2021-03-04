@@ -1,7 +1,6 @@
 defmodule Curvy.SignatureTest do
   use ExUnit.Case, async: true
   alias Curvy.Signature
-  doctest Signature
 
   @test_sig %Signature{
     r: 63173831029936981022572627018246571655303050627048489594159321588908385378810,

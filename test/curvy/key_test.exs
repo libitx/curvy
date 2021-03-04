@@ -1,7 +1,6 @@
 defmodule Curvy.KeyTest do
   use ExUnit.Case, async: true
   alias Curvy.Key
-  doctest Key
 
   @test_key %Key{
     point: %Curvy.Point{
