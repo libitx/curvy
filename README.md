@@ -1,5 +1,9 @@
 # Curvy
 
+![Hex.pm](https://img.shields.io/hexpm/v/curvy?color=informational)
+![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
+![Build Status](https://img.shields.io/github/workflow/status/libitx/curvy/Elixir%20CI)
+
 Curvy is a pure Elixir implementation of `secp256k1`, an elliptic curve that can be used in signature schemes, asymmetric encryption and ECDH shared secrets.
 
 `secp256k1` is used in Bitcoin, and Curvy exposes a handful of functions to help with common Bitcoin app use cases.
