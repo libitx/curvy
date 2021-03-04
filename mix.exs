@@ -15,8 +15,8 @@ defmodule Curvy.MixProject do
         main: "Curvy"
       ],
       package: [
-        name: "Curvy",
-        files: ~w(lib .formatter.exs mix.exs README.md LICENSE.md),
+        name: "curvy",
+        files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
         licenses: ["Apache-2.0"],
         links: %{
           "GitHub" => "https://github.com/libitx/curvy"
