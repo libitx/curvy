@@ -7,7 +7,21 @@ defmodule Curvy.MixProject do
       version: "0.1.0",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      name: "Curvy",
+      description: "Curvy is a pure Elixir implementation of secp256k1, for use in Bitcoin applications.",
+      source_url: "https://github.com/libitx/curvy",
+      docs: [
+        main: "Curvy"
+      ],
+      package: [
+        name: "Curvy",
+        files: ~w(lib .formatter.exs mix.exs README.md LICENSE.md),
+        licenses: ["Apache-2.0"],
+        links: %{
+          "GitHub" => "https://github.com/libitx/curvy"
+        }
+      ]
     ]
   end
 
