@@ -10,22 +10,22 @@ defmodule Curvy do
 
   ## Highlights
 
-  * Supports deterministic ECDSA signatures as per [RFC 6979](https://tools.ietf.org/html/rfc6979)
+  * Pure Elixir implementation of `secp256k1` - no external dependencies
   * Fast ECDSA cryptography using Jacobian Point mathematics
+  * Supports deterministic ECDSA signatures as per [RFC 6979](https://tools.ietf.org/html/rfc6979)
   * Securely generate random ECDSA keypairs
   * Compute ECDH shared secrets
-  * Zero dependencies, pure Elixir
 
   ## Installation
 
   The package can be installed by adding `curvy` to your list of dependencies in
   `mix.exs`.
 
-  def deps do
-    [
-      {:curvy, "~> 0.1"}
-    ]
-  end
+      def deps do
+        [
+          {:curvy, "~> 0.1"}
+        ]
+      end
 
   ## Usage
 

@@ -10,11 +10,11 @@ Signatures and Bitcoin flavoured crypto written in pure Elixir. Curvy is an impl
 
 ## Highlights
 
-* Supports deterministic ECDSA signatures as per [RFC 6979](https://tools.ietf.org/html/rfc6979)
+* Pure Elixir implementation of `secp256k1` - no external dependencies
 * Fast ECDSA cryptography using Jacobian Point mathematics
+* Supports deterministic ECDSA signatures as per [RFC 6979](https://tools.ietf.org/html/rfc6979)
 * Securely generate random ECDSA keypairs
 * Compute ECDH shared secrets
-* Zero dependencies, pure Elixir
 
 ## Installation
 
