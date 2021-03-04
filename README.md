@@ -1,5 +1,7 @@
 # Curvy
 
+![Curvy](https://github.com/libitx/curvy/raw/master/media/poster.png)
+
 ![Hex.pm](https://img.shields.io/hexpm/v/curvy?color=informational)
 ![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
 ![Build Status](https://img.shields.io/github/workflow/status/libitx/curvy/Elixir%20CI)
@@ -105,7 +107,7 @@ For more examples, refer to the [full documentation](https://hexdocs.pm/curvy).
 
 ## Disclaimer
 
-The are many articles published warning that you should never try to implement well-known (and known to be secure) crypto algorithms yourself. Well guess what, that's exactly what I've done here. I am **not** a cryptographer nor a mathmetician. If you're after the most performant and battle tested Bitcoin library, use the [`libsecp256k1`](https://hex.pm/packages/libsecp256k1) NIF bindings.
+The are many published warnings that you should never try to implement well-known (and known to be secure) crypto algorithms yourself. Well guess what, that's exactly what I've done here. I am **not** a cryptographer nor a mathmetician. If you're after the most performant and battle tested Bitcoin library, use the [`libsecp256k1`](https://hex.pm/packages/libsecp256k1) NIF bindings.
 
 This library offers a simpler and smaller interface for common functionality. Being writting purely in Elixir without any dependencies, it is a lighter-weight option without the compilation complexities the NIF bindings may bring.
 

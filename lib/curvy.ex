@@ -1,5 +1,7 @@
 defmodule Curvy do
   @moduledoc """
+  ![Curvy](https://github.com/libitx/curvy/raw/master/media/poster.png)
+
   ![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
 
   Curvy is a pure Elixir implementation of `secp256k1`, an elliptic curve that
