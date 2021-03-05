@@ -4,7 +4,8 @@ defmodule Curvy.SignatureTest do
 
   @test_sig %Signature{
     r: 63173831029936981022572627018246571655303050627048489594159321588908385378810,
-    s: 4331694221846364448463828256391194279133231453999942381442030409253074198130
+    s: 4331694221846364448463828256391194279133231453999942381442030409253074198130,
+    recid: 0
   }
 
   @test_der <<
@@ -24,15 +25,17 @@ defmodule Curvy.SignatureTest do
 
   describe "parse/2" do
     test "parses a valid der signature" do
-      assert %Signature{r: r, s: s} = Signature.parse(@test_der)
+      assert %Signature{r: r, s: s, recid: recid} = Signature.parse(@test_der)
       assert r == @test_sig.r
       assert s == @test_sig.s
+      assert is_nil(recid)
     end
 
     test "parses a valid compact signature" do
-      assert %Signature{r: r, s: s} = Signature.parse(@test_compact)
+      assert %Signature{r: r, s: s, recid: recid} = Signature.parse(@test_compact)
       assert r == @test_sig.r
       assert s == @test_sig.s
+      assert recid == 0
     end
   end
 
@@ -46,24 +49,25 @@ defmodule Curvy.SignatureTest do
 
   describe "to_compact/1" do
     test "returns compact signature" do
-      assert Signature.to_compact(@test_sig, 0) == @test_compact
+      assert Signature.to_compact(@test_sig) == @test_compact
     end
 
     test "returns compact signature with correct prefix" do
-      assert <<32, _::binary>> = Signature.to_compact(@test_sig, 1)
-      assert <<33, _::binary>> = Signature.to_compact(@test_sig, 2)
-      assert <<34, _::binary>> = Signature.to_compact(@test_sig, 3)
+      assert <<32, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 1)
+      assert <<33, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 2)
+      assert <<34, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 3)
     end
 
     test "returns compact signature with correct prefix for uncompressed" do
-      assert <<28, _::binary>> = Signature.to_compact(@test_sig, 1, compressed: false)
-      assert <<29, _::binary>> = Signature.to_compact(@test_sig, 2, compressed: false)
-      assert <<30, _::binary>> = Signature.to_compact(@test_sig, 3, compressed: false)
+      assert <<28, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 1, compressed: false)
+      assert <<29, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 2, compressed: false)
+      assert <<30, _::binary>> = Signature.to_compact(@test_sig, recovery_id: 3, compressed: false)
     end
 
-    test "raises error if not a valid recovery byte" do
-      assert_raise FunctionClauseError, fn -> Signature.to_compact(@test_sig, -1) end
-      assert_raise FunctionClauseError, fn -> Signature.to_compact(@test_sig, 4) end
+    test "raises error if not a valid recovery ID" do
+      assert_raise RuntimeError, "Recovery ID not in range 0..3", fn -> @test_sig |> Map.put(:recid, nil) |> Signature.to_compact() end
+      assert_raise RuntimeError, "Recovery ID not in range 0..3", fn -> Signature.to_compact(@test_sig, recovery_id: -1) end
+      assert_raise RuntimeError, "Recovery ID not in range 0..3", fn -> Signature.to_compact(@test_sig, recovery_id: 4) end
     end
   end
 

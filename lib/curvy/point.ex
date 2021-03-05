@@ -2,8 +2,9 @@ defmodule Curvy.Point do
   @moduledoc """
   Module used for manipulating ECDSA point coordinates.
   """
+  use Bitwise, only_operators: true
   import Curvy.Util, only: [mod: 2, inv: 2, ipow: 2]
-  alias Curvy.Curve
+  alias Curvy.{Curve, Key, Signature}
 
   defstruct [:x, :y]
 
@@ -21,6 +22,34 @@ defmodule Curvy.Point do
   }
 
   @crv Curve.secp256k1
+
+
+  @doc """
+  Converts the signature to a [`Point`](`t:t`) using the given hash integer and
+  recovery ID.
+  """
+  @spec from_signature(Signature.t, integer, Signature.recovery_id) :: t | :error
+  def from_signature(%Signature{r: r, s: s}, _e, _recid)
+    when r == 0 or s == 0,
+    do: :error
+
+  def from_signature(%Signature{r: r, s: s}, e, recid) do
+    rinv = inv(r, @crv.n)
+    prefix = 2 + (recid &&& 1)
+
+    sp = <<prefix, r::big-size(256)>>
+    |> Key.from_pubkey()
+    |> Map.get(:point)
+    |> mul(s)
+
+    hg = @crv[:G]
+    |> mul(e)
+    |> negate()
+
+    sp
+    |> add(hg)
+    |> mul(rinv)
+  end
 
 
   @doc """

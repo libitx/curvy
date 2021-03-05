@@ -58,6 +58,34 @@ defmodule CurvyTest do
   end
 
 
+  describe "recover_key/3" do
+    test "recovers from a der sig if you have the recovery id" do
+      {sig, recovery_id} = Curvy.sign("testing recovery", @test_key, recovery: true)
+      assert %Key{point: point} = Curvy.recover_key(sig, "testing recovery", recovery_id: recovery_id)
+      assert point == @test_key.point
+    end
+
+    test "recovers from a compact sig automatically" do
+      sig = Curvy.sign("testing recovery", @test_key, compact: true)
+      assert %Key{point: point} = Curvy.recover_key(sig, "testing recovery")
+      assert point == @test_key.point
+    end
+
+    test "correctly recovers uncompressed keys" do
+      test_key = Map.put(@test_key, :compressed, false)
+      sig = Curvy.sign("testing recovery", test_key, compact: true)
+      assert %Key{point: point, compressed: false} = Curvy.recover_key(sig, "testing recovery")
+      assert point == @test_key.point
+    end
+
+    test "raises error if not a valid recovery ID" do
+      assert_raise RuntimeError, "Recovery ID not in range 0..3", fn ->
+        Curvy.sign("testing recovery", @test_key) |> Curvy.recover_key("testing recovery")
+      end
+    end
+  end
+
+
   @test_sig <<
     48, 68, 2, 32, 73, 215, 80, 53, 217, 221, 168, 33, 193, 118, 170, 215, 59,
     189, 107, 29, 179, 38, 62, 205, 248, 238, 32, 25, 17, 38, 88, 25, 171, 149,
@@ -68,12 +96,12 @@ defmodule CurvyTest do
   @test_sig_hex "3044022049d75035d9dda821c176aad73bbd6b1db3263ecdf8ee201911265819ab95dc2b022021bf41ed0ba2723c0faebbf7a1c3e9c583bbb82c5cc3e0d1fc570747d6ff6233"
 
   @test_sig_c <<
-    32, 73, 215, 80, 53, 217, 221, 168, 33, 193, 118, 170, 215, 59, 189, 107, 29,
+    31, 73, 215, 80, 53, 217, 221, 168, 33, 193, 118, 170, 215, 59, 189, 107, 29,
     179, 38, 62, 205, 248, 238, 32, 25, 17, 38, 88, 25, 171, 149, 220, 43, 33,
     191, 65, 237, 11, 162, 114, 60, 15, 174, 187, 247, 161, 195, 233, 197, 131,
     187, 184, 44, 92, 195, 224, 209, 252, 87, 7, 71, 214, 255, 98, 51>>
-  @test_sig_c_b64 "IEnXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
-  @test_sig_c_hex "2049d75035d9dda821c176aad73bbd6b1db3263ecdf8ee201911265819ab95dc2b21bf41ed0ba2723c0faebbf7a1c3e9c583bbb82c5cc3e0d1fc570747d6ff6233"
+  @test_sig_c_b64 "H0nXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
+  @test_sig_c_hex "1f49d75035d9dda821c176aad73bbd6b1db3263ecdf8ee201911265819ab95dc2b21bf41ed0ba2723c0faebbf7a1c3e9c583bbb82c5cc3e0d1fc570747d6ff6233"
 
   describe "sign/3" do
     test "signs a message with the given encoding" do
@@ -107,7 +135,6 @@ defmodule CurvyTest do
       assert :crypto.verify(:ecdsa, :sha256, "hello", Curvy.sign("hello", @test_key, normalize: false), [Key.to_pubkey(@test_key), :secp256k1])
     end
   end
-
 
 
   describe "verify/4" do

@@ -52,17 +52,7 @@ defmodule Curvy do
       iex> Curvy.Key.to_pubkey(key, compressed: false)
       <<privkey::binary-size(65)>>
 
-  ### 2. ECDH shared secrets
-
-  ECDH shared secrets are computed by multiplying a public key with a private
-  key. The operation yields the same result in both directions.
-
-      iex> s1 = Curvy.get_shared_secret(key1, key2)
-      iex> s2 = Curvy.get_shared_secret(key2, key1)
-      iex> s1 == s2
-      true
-
-  ### 3. Sign messages
+  ### 2. Sign messages
 
   Sign arbitrary messages with a private key. Signatures are deterministic as
   per [RFC 6979](https://tools.ietf.org/html/rfc6979).
@@ -76,7 +66,7 @@ defmodule Curvy do
       iex> sig = Curvy.sign("hello", compact: true, encoding: :base64)
       "IEnXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
 
-  ### 4. Verify signatures
+  ### 3. Verify signatures
 
   Verify a signature against the message and a public key.
 
@@ -89,6 +79,33 @@ defmodule Curvy do
       # Returns :error if the signature cannot be decoded
       iex> sig = Curvy.verify("notasig", "hello", key)
       :error
+
+  ### 4. Recover the public key from a signature
+
+  It's possible to recover the public key from a compact signature when given
+  with the signed message.
+
+      iex> sig = Curvy.sign("hello", key, compact: true)
+      iex> recovered = Curvy.recover_key(sig, "hello")
+      iex> recovered.point == key.point
+      true
+
+  The same can be done with DER encoded signatures if the recovery ID is known.
+
+      iex> {sig, recovery_id} = Curvy.sign("hello", key, recovery: true)
+      iex> recovered = Curvy.recover_key(sig, "hello", recovery_id: recovery_id)
+      iex> recovered.point == key.point
+      true
+
+  ### 5. ECDH shared secrets
+
+  ECDH shared secrets are computed by multiplying a public key with a private
+  key. The operation yields the same result in both directions.
+
+      iex> s1 = Curvy.get_shared_secret(key1, key2)
+      iex> s2 = Curvy.get_shared_secret(key2, key1)
+      iex> s1 == s2
+      true
 
   """
   use Bitwise, only_operators: true
@@ -135,9 +152,61 @@ defmodule Curvy do
 
 
   @doc """
+  Recovers the public key from the signature and signed message.
+
+  Returns an [`ECDSA Keypair`](`t:t`) struct, without the privkey value.
+
+  If recovering fom a DER encoded signature, the [`Recovery ID`](`Signature.recovery_id`)
+  returned from `Curvy.sign(msg, key, recovery: true)` must be passed as an
+  option. If recovering from a compact signature the recovery ID is already
+  encoded in the signature.
+
+  ## Accepted options
+
+  * `:encoding` - Optionally decode the given signature as `:base64` or `:hex`.
+  * `:hash` - Digest algorithm to hash the message with. Default is `:sha256`.
+  * `:recovery_id` - The signature [`Recovery ID`](`Signature.recovery_id`).
+  """
+  @spec recover_key(Signature.t | binary, binary, keyword) :: Key.t | :error
+  def recover_key(sig, message, opts \\ [])
+
+  def recover_key(data, message, opts) when is_binary(data) do
+    encoding = Keyword.get(opts, :encoding)
+    with {:ok, data} <- decode(data, encoding),
+         %Signature{} = sig <- Signature.parse(data)
+    do
+      opts = case data do
+        <<prefix, _sig::binary-size(64)>> when (prefix - 27 - 4) < 0 ->
+          Keyword.put(opts, :compressed, false)
+        _ ->
+          opts
+      end
+      recover_key(sig, message, opts)
+    end
+  end
+
+  def recover_key(%Signature{recid: recid} = sig, message, opts) do
+    with recid when recid in 0..3 <- Keyword.get(opts, :recovery_id, recid) do
+      digest = Keyword.get(opts, :hash, :sha256)
+      e = message
+      |> hash_message(digest)
+      |> :binary.decode_unsigned()
+
+      sig
+      |> Signature.normalize()
+      |> Point.from_signature(e, recid)
+      |> Key.from_point(Keyword.take(opts, [:compressed]))
+    else
+      _ ->
+        raise "Recovery ID not in range 0..3"
+    end
+  end
+
+
+  @doc """
   Signs the message with the given private key.
 
-  Returns a signature binary.
+  Returns a DER encoded or compact signature binary.
 
   ## Accepted options
 
@@ -150,26 +219,27 @@ defmodule Curvy do
   @spec sign(binary, Key.t | binary, keyword) :: binary
   def sign(message, privkey, opts \\ [])
 
-  def sign(message, %Key{privkey: privkey}, opts) when is_binary(privkey),
-    do: sign(message, privkey, opts)
+  def sign(message, %Key{privkey: privkey, compressed: compressed}, opts)
+    when is_binary(privkey)
+  do
+    opts = Keyword.put_new(opts, :compressed, compressed)
+    sign(message, privkey, opts)
+  end
 
   def sign(message, <<d::big-size(256)>>, opts) do
     digest = Keyword.get(opts, :hash, :sha256)
-    normalize = Keyword.get(opts, :normalize, true)
-    compact = Keyword.get(opts, :compact, false)
     encoding = Keyword.get(opts, :encoding)
-    recovery = Keyword.get(opts, :recovery)
 
     {q, r, s} = get_qrs(message, digest, d)
-    recovery_id = if q.x == r,
-      do: 0 ||| (q.y &&& 1),
-      else: 2 ||| (q.y &&& 1)
+    recid = get_recovery_id(q, r)
 
-    %Signature{r: r, s: s}
-    |> maybe_normalize(normalize)
-    |> maybe_compact(recovery_id, compact)
+    sig = %Signature{r: r, s: s, recid: recid}
+    |> maybe_normalize(opts)
+
+    sig
+    |> maybe_compact(opts)
     |> encode(encoding)
-    |> maybe_recovery(recovery_id, recovery)
+    |> maybe_recovery(sig, opts)
   end
 
 
@@ -181,8 +251,9 @@ defmodule Curvy do
   ## Accepted options
 
   * `:encoding` - Optionally decode the given signature as `:base64` or `:hex`.
+  * `:hash` - Digest algorithm to hash the message with. Default is `:sha256`.
   """
-  @spec verify(Signature.t | binary, binary, Key.t | binary, keyword) :: boolean
+  @spec verify(Signature.t | binary, binary, Key.t | binary, keyword) :: boolean | :error
   def verify(sig, message, pubkey, opts \\ [])
 
   def verify(sig, message, pubkey, opts) when is_binary(pubkey),
@@ -262,20 +333,41 @@ defmodule Curvy do
   end
 
 
+  # Get the recovery ID from the point and R value
+  defp get_recovery_id(%{x: x, y: y}, r) when x == r, do: 0 ||| (y &&& 1)
+  defp get_recovery_id(%{x: _x, y: y}, _r), do: 2 ||| (y &&& 1)
+
+
   # Normalizes the given signature if opted for
-  defp maybe_normalize(%Signature{} = sig, b) when b in [false, nil], do: sig
-  defp maybe_normalize(%Signature{} = sig, _b), do: Signature.normalize(sig)
+  defp maybe_normalize(%Signature{} = sig, opts) do
+    case Keyword.get(opts, :normalize, true) do
+      opt when opt in [false, nil] ->
+        sig
+      _ ->
+        Signature.normalize(sig)
+    end
+  end
 
 
   # Returns compact or der encoded signature
-  defp maybe_compact(%Signature{} = sig, _rec_id, b) when b in [false, nil],
-    do: Signature.to_der(sig)
-  defp maybe_compact(%Signature{} = sig, rec_id, _b),
-    do: Signature.to_compact(sig, rec_id)
+  defp maybe_compact(%Signature{} = sig, opts) do
+    case Keyword.get(opts, :compact, false) do
+      opt when opt in [false, nil] ->
+        Signature.to_der(sig)
+      _ ->
+        Signature.to_compact(sig, Keyword.take(opts, [:compressed]))
+    end
+  end
 
 
   # Returns the signature with recovery is of opted for
-  defp maybe_recovery(sig, rec_id, true), do: {sig, rec_id}
-  defp maybe_recovery(sig, _rec_id, _b), do: sig
+  defp maybe_recovery(encoded_sig, %Signature{recid: recid}, opts) do
+    case Keyword.get(opts, :recovery) do
+      true -> {encoded_sig, recid}
+      _ -> encoded_sig
+    end
+  end
+
+  defp maybe_recovery(encoded_sig, _sig, _opts), do: encoded_sig
 
 end

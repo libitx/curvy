@@ -58,19 +58,7 @@ iex> Curvy.Key.to_pubkey(key, compressed: false)
 <<privkey::binary-size(65)>>
 ```
 
-### 2. ECDH shared secrets
-
-ECDH shared secrets are computed by multiplying a public key with a private
-key. The operation yields the same result in both directions.
-
-```elixir
-iex> s1 = Curvy.get_shared_secret(key1, key2)
-iex> s2 = Curvy.get_shared_secret(key2, key1)
-iex> s1 == s2
-true
-```
-
-### 3. Sign messages
+### 2. Sign messages
 
 Sign arbitrary messages with a private key. Signatures are deterministic as per [RFC 6979](https://tools.ietf.org/html/rfc6979).
 
@@ -85,7 +73,7 @@ iex> sig = Curvy.sign("hello", compact: true, encoding: :base64)
 "IEnXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
 ```
 
-### 4. Verify signatures
+### 3. Verify signatures
 
 Verify a signature against the message and a public key.
 
@@ -100,6 +88,41 @@ false
 iex> sig = Curvy.verify("notasig", "hello", key)
 :error
 ```
+
+### 4. Recover the public key from a signature
+
+It's possible to recover the public key from a compact signature when given
+with the signed message.
+
+```elixir
+iex> sig = Curvy.sign("hello", key, compact: true)
+iex> recovered = Curvy.recover_key(sig, "hello")
+iex> recovered.point == key.point
+true
+```
+
+The same can be done with DER encoded signatures if the recovery ID is known.
+
+```elixir
+iex> {sig, recovery_id} = Curvy.sign("hello", key, recovery: true)
+iex> recovered = Curvy.recover_key(sig, "hello", recovery_id: recovery_id)
+iex> recovered.point == key.point
+true
+```
+
+### 5. ECDH shared secrets
+
+ECDH shared secrets are computed by multiplying a public key with a private
+key. The operation yields the same result in both directions.
+
+```elixir
+iex> s1 = Curvy.get_shared_secret(key1, key2)
+iex> s2 = Curvy.get_shared_secret(key2, key1)
+iex> s1 == s2
+true
+```
+
+
 
 For more examples, refer to the [full documentation](https://hexdocs.pm/curvy).
 

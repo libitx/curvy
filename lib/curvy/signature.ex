@@ -6,14 +6,21 @@ defmodule Curvy.Signature do
   use Bitwise, only_operators: true
   alias Curvy.Curve
 
-  defstruct r: nil,
-            s: nil
+  defstruct crv: :secp256k1,
+            r: nil,
+            s: nil,
+            recid: nil
 
   @typedoc "ECDSA Signature"
   @type t :: %__MODULE__{
+    crv: atom,
     r: integer,
-    s: integer
+    s: integer,
+    recid: recovery_id | nil
   }
+
+  @typedoc "Recovery ID"
+  @type recovery_id :: 0 | 1 | 2 | 3
 
   @crv Curve.secp256k1
 
@@ -31,8 +38,15 @@ defmodule Curvy.Signature do
     }
   end
 
-  def parse(<<_prefix::integer, r::big-size(256), s::big-size(256)>>),
-    do: %__MODULE__{r: r, s: s}
+  def parse(<<prefix::integer, r::big-size(256), s::big-size(256)>>) do
+    recid = case prefix - 27 - 4 do
+      recid when recid < 0 ->
+        recid + 4
+      recid ->
+        recid
+    end
+    %__MODULE__{r: r, s: s, recid: recid}
+  end
 
   def parse(_sig), do: :error
 
@@ -46,15 +60,18 @@ defmodule Curvy.Signature do
   for more info.
   """
   @spec normalize(t) :: t
-  def normalize(%__MODULE__{s: s} = sig) do
-    case s > Integer.floor_div(@crv.n, 2) do
-      true ->
-        Map.put(sig, :s, @crv.n - s)
-      false ->
+  def normalize(%__MODULE__{s: s} = sig) when s > (@crv.n >>> 1) do
+    sig
+    |> Map.put(:s, @crv.n - s)
+    |> case do
+      %__MODULE__{recid: recid} = sig when recid in 0..3 ->
+        Map.put(sig, :recid, recid ^^^ 1)
+      sig ->
         sig
     end
   end
 
+  def normalize(%__MODULE__{} = sig), do: sig
 
 
   @doc """
@@ -83,22 +100,23 @@ defmodule Curvy.Signature do
   @doc """
   Returns the signature as a 65 byte compact binary.
   """
-  @spec to_compact(t, integer) :: binary
-  def to_compact(%__MODULE__{r: r, s: s}, recovery_id, opts \\ [])
-    when recovery_id in 0..3
-  do
-    compressed = Keyword.get(opts, :compressed, true)
+  @spec to_compact(t, keyword) :: binary
+  def to_compact(%__MODULE__{r: r, s: s, recid: recid}, opts \\ []) do
+    with recid when recid in 0..3 <- Keyword.get(opts, :recovery_id, recid) do
+      prefix = case Keyword.get(opts, :compressed, true) do
+        true -> recid + 27 + 4
+        false -> recid + 27
+      end
 
-    prefix = case compressed do
-      true -> recovery_id + 27 + 4
-      false -> recovery_id + 27
+      <<
+        prefix,             # recovery
+        r::big-size(256),   # r
+        s::big-size(256)    # s
+      >>
+    else
+      _ ->
+        raise "Recovery ID not in range 0..3"
     end
-
-    <<
-      prefix,             # recovery
-      r::big-size(256),   # r
-      s::big-size(256)    # s
-    >>
   end
 
 
