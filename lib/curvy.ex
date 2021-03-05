@@ -361,7 +361,9 @@ defmodule Curvy do
 
 
   # Returns the signature with recovery is of opted for
-  defp maybe_recovery(encoded_sig, %Signature{recid: recid}, opts) do
+  defp maybe_recovery(encoded_sig, %Signature{recid: recid}, opts)
+    when is_integer(recid)
+  do
     case Keyword.get(opts, :recovery) do
       true -> {encoded_sig, recid}
       _ -> encoded_sig
