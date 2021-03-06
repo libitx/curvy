@@ -305,14 +305,14 @@ defmodule Curvy do
     e = :binary.decode_unsigned(hash)
     v = :binary.copy(<<0>>, 32)
     k = :binary.copy(<<1>>, 32)
-    k = :crypto.hmac(:sha256, k, <<v::binary, 0, d::big-size(256), hash::binary>>)
-    v = :crypto.hmac(:sha256, k, v)
-    k = :crypto.hmac(:sha256, k, <<v::binary, 1, d::big-size(256), hash::binary>>)
-    v = :crypto.hmac(:sha256, k, v)
+    k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 0, d::big-size(256), hash::binary>>)
+    v = :crypto.mac(:hmac, :sha256, k, v)
+    k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 1, d::big-size(256), hash::binary>>)
+    v = :crypto.mac(:hmac, :sha256, k, v)
 
     Enum.reduce_while 0..1000, {k, v}, fn i, {k, v} ->
       if i == 1000, do: throw "Tried 1000 k values, all were invalid"
-      v = :crypto.hmac(:sha256, k, v)
+      v = :crypto.mac(:hmac, :sha256, k, v)
 
       case v do
         <<t::big-size(256)>> when 0 < t and t < @crv.n ->
@@ -325,8 +325,8 @@ defmodule Curvy do
             else: {:halt, {q, r, s}}
 
         _ ->
-          k = :crypto.hmac(:sha256, k, <<v::binary, 0>>)
-          v = :crypto.hmac(:sha256, k, v)
+          k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 0>>)
+          v = :crypto.mac(:hmac, :sha256, k, v)
           {:cont, {k, v}}
       end
     end
