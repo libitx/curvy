@@ -4,12 +4,12 @@ defmodule Curvy.MixProject do
   def project do
     [
       app: :curvy,
-      version: "0.2.0",
+      version: "0.2.1",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Curvy",
-      description: "Signatures and Bitcoin flavoured crypto written in pure Elixir.",
+      description: "Curvy is a pure Elixir implementation of secp256k1 for ECDSA signatures and Bitcoin flavoured crypto.",
       source_url: "https://github.com/libitx/curvy",
       docs: [
         main: "Curvy"
