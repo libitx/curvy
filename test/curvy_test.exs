@@ -58,6 +58,31 @@ defmodule CurvyTest do
   end
 
 
+  describe "get_shared_secret/3 with test vectors" do
+    setup do
+      %{"testGroups" => [%{"tests" => vectors}]} = File.read!("test/vectors/ecdh.json") |> Jason.decode!()
+      %{vectors: vectors}
+    end
+
+    test "calculates correct shared secret for all test vectors", %{vectors: vectors} do
+      vectors
+      |> Enum.take(230)
+      |> Enum.filter(& &1["result"] == "valid")
+      |> Enum.all?(fn %{"public" => public, "private" => private, "shared" => shared} ->
+        privkey = case Base.decode16!(private, case: :lower) do
+          <<_prefix, privkey::binary-size(32)>> ->
+            privkey
+          privkey ->
+            # pad if needed
+            :binary.copy(<<0>>, 32-byte_size(privkey)) <> privkey
+        end
+        <<_der::binary-size(23), pubkey::binary>> = Base.decode16!(public, case: :lower)
+        assert Curvy.get_shared_secret(privkey, pubkey, encoding: :hex) == shared
+      end)
+    end
+  end
+
+
   describe "recover_key/3" do
     test "recovers from a der sig if you have the recovery id" do
       {sig, recovery_id} = Curvy.sign("testing recovery", @test_key, recovery: true)
@@ -87,21 +112,21 @@ defmodule CurvyTest do
 
 
   @test_sig <<
-    48, 68, 2, 32, 73, 215, 80, 53, 217, 221, 168, 33, 193, 118, 170, 215, 59,
-    189, 107, 29, 179, 38, 62, 205, 248, 238, 32, 25, 17, 38, 88, 25, 171, 149,
-    220, 43, 2, 32, 33, 191, 65, 237, 11, 162, 114, 60, 15, 174, 187, 247, 161,
-    195, 233, 197, 131, 187, 184, 44, 92, 195, 224, 209, 252, 87, 7, 71, 214, 255,
-    98, 51>>
-  @test_sig_b64 "MEQCIEnXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrAiAhv0HtC6JyPA+uu/ehw+nFg7u4LFzD4NH8VwdH1v9iMw=="
-  @test_sig_hex "3044022049d75035d9dda821c176aad73bbd6b1db3263ecdf8ee201911265819ab95dc2b022021bf41ed0ba2723c0faebbf7a1c3e9c583bbb82c5cc3e0d1fc570747d6ff6233"
+    48, 68, 2, 32, 42, 65, 162, 214, 121, 255, 204, 204, 227, 137, 211, 178, 122,
+    128, 172, 232, 164, 118, 53, 56, 153, 4, 174, 102, 112, 28, 162, 64, 44, 60,
+    213, 100, 2, 32, 49, 19, 136, 160, 56, 233, 56, 176, 40, 4, 227, 47, 135, 81,
+    79, 233, 233, 93, 249, 146, 2, 116, 213, 39, 183, 242, 72, 188, 44, 66, 115,
+    60>>
+  @test_sig_b64 "MEQCICpBotZ5/8zM44nTsnqArOikdjU4mQSuZnAcokAsPNVkAiAxE4igOOk4sCgE4y+HUU/p6V35kgJ01Se38ki8LEJzPA=="
+  @test_sig_hex "304402202a41a2d679ffcccce389d3b27a80ace8a47635389904ae66701ca2402c3cd5640220311388a038e938b02804e32f87514fe9e95df9920274d527b7f248bc2c42733c"
 
   @test_sig_c <<
-    31, 73, 215, 80, 53, 217, 221, 168, 33, 193, 118, 170, 215, 59, 189, 107, 29,
-    179, 38, 62, 205, 248, 238, 32, 25, 17, 38, 88, 25, 171, 149, 220, 43, 33,
-    191, 65, 237, 11, 162, 114, 60, 15, 174, 187, 247, 161, 195, 233, 197, 131,
-    187, 184, 44, 92, 195, 224, 209, 252, 87, 7, 71, 214, 255, 98, 51>>
-  @test_sig_c_b64 "H0nXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
-  @test_sig_c_hex "1f49d75035d9dda821c176aad73bbd6b1db3263ecdf8ee201911265819ab95dc2b21bf41ed0ba2723c0faebbf7a1c3e9c583bbb82c5cc3e0d1fc570747d6ff6233"
+    32, 42, 65, 162, 214, 121, 255, 204, 204, 227, 137, 211, 178, 122, 128, 172,
+    232, 164, 118, 53, 56, 153, 4, 174, 102, 112, 28, 162, 64, 44, 60, 213, 100,
+    49, 19, 136, 160, 56, 233, 56, 176, 40, 4, 227, 47, 135, 81, 79, 233, 233, 93,
+    249, 146, 2, 116, 213, 39, 183, 242, 72, 188, 44, 66, 115, 60>>
+  @test_sig_c_b64 "ICpBotZ5/8zM44nTsnqArOikdjU4mQSuZnAcokAsPNVkMROIoDjpOLAoBOMvh1FP6eld+ZICdNUnt/JIvCxCczw="
+  @test_sig_c_hex "202a41a2d679ffcccce389d3b27a80ace8a47635389904ae66701ca2402c3cd564311388a038e938b02804e32f87514fe9e95df9920274d527b7f248bc2c42733c"
 
   describe "sign/3" do
     test "signs a message with the given encoding" do
@@ -133,6 +158,21 @@ defmodule CurvyTest do
     test "verifyable with built in erlang crypto" do
       assert :crypto.verify(:ecdsa, :sha256, "hello", @test_sig, [Key.to_pubkey(@test_key), :secp256k1])
       assert :crypto.verify(:ecdsa, :sha256, "hello", Curvy.sign("hello", @test_key, normalize: false), [Key.to_pubkey(@test_key), :secp256k1])
+    end
+  end
+
+
+  describe "sign/3 with test vectors" do
+    setup do
+      %{"valid" => vectors} = File.read!("test/vectors/ecdsa.json") |> Jason.decode!()
+      %{vectors: vectors}
+    end
+
+    test "calculates correct signature for all test vectors", %{vectors: vectors} do
+      for %{"m" => m, "d" => d, "signature" => sig} <- vectors do
+        <<_prefix, res::binary>> = Curvy.sign(Base.decode16!(m, case: :lower), Base.decode16!(d, case: :lower), hash: false, compact: true)
+        assert res == Base.decode16!(sig, case: :lower)
+      end
     end
   end
 

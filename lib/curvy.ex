@@ -143,11 +143,10 @@ defmodule Curvy do
 
   def get_shared_secret(%Key{privkey: <<d::big-size(256)>>}, %Key{point: point}, opts) do
     encoding = Keyword.get(opts, :encoding)
-    point
+    x = point
     |> Point.mul(d)
     |> Map.get(:x)
-    |> :binary.encode_unsigned()
-    |> encode(encoding)
+    encode(<<x::big-size(256)>>, encoding)
   end
 
 
@@ -303,8 +302,8 @@ defmodule Curvy do
   # Implements RFC 6979 and returns QRS values from deterministically generated K
   defp deterministic_k(hash, d) do
     e = :binary.decode_unsigned(hash)
-    v = :binary.copy(<<0>>, 32)
-    k = :binary.copy(<<1>>, 32)
+    v = :binary.copy(<<1>>, 32)
+    k = :binary.copy(<<0>>, 32)
     k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 0, d::big-size(256), hash::binary>>)
     v = :crypto.mac(:hmac, :sha256, k, v)
     k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 1, d::big-size(256), hash::binary>>)

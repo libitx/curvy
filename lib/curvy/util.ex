@@ -25,30 +25,36 @@ defmodule Curvy.Util do
   def encode(data, _), do: data
 
 
-  @doc false
+  @doc """
+  Invert operation.
+  """
   @spec inv(integer, integer) :: integer
   def inv(x, _n) when x == 0, do: 0
   def inv(x, n), do: inv_op(1, 0, mod(x, n), n)
 
 
-  @doc false
+  @doc """
+  Inverse power operation.
+  """
   @spec ipow(integer, integer) :: integer
   def ipow(base, p, acc \\ 1)
   def ipow(base, p, acc) when p > 0, do: ipow(base, p - 1, base * acc)
   def ipow(_base, _p, acc), do: acc
 
 
-  @doc false
+  @doc """
+  Modulo operation. Returns the remainder after x is divided by n.
+  """
   @spec mod(integer, integer) :: integer
   def mod(x, n), do: rem(x, n) |> correct_neg_mod(n)
 
 
-  # TODO
+  # Correct mod if negative
   defp correct_neg_mod(r, n) when r < 0, do: r + n
   defp correct_neg_mod(r, _n), do: r
 
 
-  # TODO
+  # Recursive inv function
   defp inv_op(lm, hm, low, high) when low > 1 do
     r = div(high, low)
     inv_op(hm - lm * r, lm, high - low * r, low)

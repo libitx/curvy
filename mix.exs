@@ -35,7 +35,8 @@ defmodule Curvy.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.23", only: :dev, runtime: false},
+      {:jason, "~> 1.2", only: :test}
     ]
   end
 end

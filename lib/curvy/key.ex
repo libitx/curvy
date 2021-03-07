@@ -47,9 +47,9 @@ defmodule Curvy.Key do
   Converts the given private key binary to a [`ECDSA Keypair`](`t:t`).
   """
   @spec from_privkey(binary, keyword) :: t
-  def from_privkey(<<privkey::binary>>, opts \\ []) do
+  def from_privkey(<<privkey::binary-size(32)>>, opts \\ []) do
     compressed = Keyword.get(opts, :compressed, true)
-    {pubkey, privkey} = :crypto.generate_key(:ecdh, :secp256k1, privkey)
+    {pubkey, _privkey} = :crypto.generate_key(:ecdh, :secp256k1, privkey)
     <<_::integer, x::big-size(256), y::big-size(256)>> = pubkey
 
     %__MODULE__{
