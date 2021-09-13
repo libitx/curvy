@@ -65,7 +65,7 @@ defmodule Curvy.Signature do
     |> Map.put(:s, @crv.n - s)
     |> case do
       %__MODULE__{recid: recid} = sig when recid in 0..3 ->
-        Map.put(sig, :recid, recid ^^^ 1)
+        Map.put(sig, :recid, Bitwise.bxor(recid, 1))
       sig ->
         sig
     end
