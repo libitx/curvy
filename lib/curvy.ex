@@ -23,7 +23,7 @@ defmodule Curvy do
 
       def deps do
         [
-          {:curvy, "~> 0.1"}
+          {:curvy, "~> #{ Mix.Project.config[:version] }"}
         ]
       end
 
