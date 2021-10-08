@@ -214,6 +214,7 @@ defmodule Curvy do
   * `:compact` - Return a compact 65 byte signature. Default is `false`.
   * `:encoding` - Optionally encode the returned signature as `:base64` or `:hex`.
   * `:recovery` - Return the signature in a tuple paired with a recovery ID. Default is `false`.
+  * `:k` - Optionally provide a signing secret `K` value, as a 256 bit integer or binary.
   """
   @spec sign(binary, Key.t | binary, keyword) :: binary
   def sign(message, privkey, opts \\ [])
@@ -228,8 +229,18 @@ defmodule Curvy do
   def sign(message, <<d::big-size(256)>>, opts) do
     digest = Keyword.get(opts, :hash, :sha256)
     encoding = Keyword.get(opts, :encoding)
+    hash = hash_message(message, digest)
+    e = :binary.decode_unsigned(hash)
 
-    {q, r, s} = get_qrs(message, digest, d)
+    {q, r, s} = case Keyword.get(opts, :k) do
+      k when is_integer(k) and 0 < k and k < @crv.n ->
+        get_qrs(e, d, k)
+      <<k::big-size(256)>> ->
+        get_qrs(e, d, k)
+      nil ->
+        deterministic_k(hash, d)
+    end
+
     recid = get_recovery_id(q, r)
 
     sig = %Signature{r: r, s: s, recid: recid}
@@ -284,11 +295,13 @@ defmodule Curvy do
   end
 
 
-  # Returns the QRS values for the message and privkey
-  defp get_qrs(message, digest, d) do
-    message
-    |> hash_message(digest)
-    |> deterministic_k(d)
+  # Calculates the QRS values
+  defp get_qrs(e, d, k) do
+    q = Point.mul(@crv[:G], k)
+    r = mod(q.x, @crv.n)
+    s = (inv(k, @crv.n) * (e + r * d)) |> mod(@crv.n)
+
+    {q, r, s}
   end
 
 
@@ -315,13 +328,12 @@ defmodule Curvy do
 
       case v do
         <<t::big-size(256)>> when 0 < t and t < @crv.n ->
-          q = Point.mul(@crv[:G], t)
-          r = mod(q.x, @crv.n)
-          s = (inv(t, @crv.n) * (e + r * d)) |> mod(@crv.n)
-
-          if r == 0 or s == 0,
-            do: {:cont, {k, v}},
-            else: {:halt, {q, r, s}}
+          case get_qrs(e, d, t) do
+            {_, r, s} when r == 0 or s == 0 ->
+              {:cont, {k, v}}
+            {q, r, s} ->
+              {:halt, {q, r, s}}
+          end
 
         _ ->
           k = :crypto.mac(:hmac, :sha256, k, <<v::binary, 0>>)
