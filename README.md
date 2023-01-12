@@ -1,6 +1,6 @@
 # Curvy
 
-![Curvy](https://github.com/libitx/curvy/raw/master/media/poster.png)
+![Curvy](https://raw.githubusercontent.com/libitx/curvy/main/media/poster.png)
 
 ![Hex.pm](https://img.shields.io/hexpm/v/curvy?color=informational)
 ![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
@@ -23,7 +23,7 @@ The package can be installed by adding `curvy` to your list of dependencies in `
 ```elixir
 def deps do
   [
-    {:curvy, "~> 0.2"}
+    {:curvy, "~> 0.3"}
   ]
 end
 ```
@@ -140,6 +140,6 @@ I am grateful to the authors of the following open source libraries I have refer
 
 ## License
 
-Txpost is open source and released under the [Apache-2 License](https://github.com/libitx/curvy/blob/master/LICENSE).
+Curvy is open source and released under the [Apache-2 License](https://github.com/libitx/curvy/blob/master/LICENSE).
 
 © Copyright 2021 [Chronos Labs Ltd](https://www.chronoslabs.net).

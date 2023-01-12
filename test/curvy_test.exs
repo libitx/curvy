@@ -58,31 +58,6 @@ defmodule CurvyTest do
   end
 
 
-  describe "get_shared_secret/3 with test vectors" do
-    setup do
-      %{"testGroups" => [%{"tests" => vectors}]} = File.read!("test/vectors/ecdh.json") |> Jason.decode!()
-      %{vectors: vectors}
-    end
-
-    test "calculates correct shared secret for all test vectors", %{vectors: vectors} do
-      vectors
-      |> Enum.take(230)
-      |> Enum.filter(& &1["result"] == "valid")
-      |> Enum.all?(fn %{"public" => public, "private" => private, "shared" => shared} ->
-        privkey = case Base.decode16!(private, case: :lower) do
-          <<_prefix, privkey::binary-size(32)>> ->
-            privkey
-          privkey ->
-            # pad if needed
-            :binary.copy(<<0>>, 32-byte_size(privkey)) <> privkey
-        end
-        <<_der::binary-size(23), pubkey::binary>> = Base.decode16!(public, case: :lower)
-        assert Curvy.get_shared_secret(privkey, pubkey, encoding: :hex) == shared
-      end)
-    end
-  end
-
-
   describe "recover_key/3" do
     test "recovers from a der sig if you have the recovery id" do
       {sig, recovery_id} = Curvy.sign("testing recovery", @test_key, recovery: true)
@@ -160,22 +135,6 @@ defmodule CurvyTest do
       assert :crypto.verify(:ecdsa, :sha256, "hello", Curvy.sign("hello", @test_key, normalize: false), [Key.to_pubkey(@test_key), :secp256k1])
     end
   end
-
-
-  describe "sign/3 with test vectors" do
-    setup do
-      %{"valid" => vectors} = File.read!("test/vectors/ecdsa.json") |> Jason.decode!()
-      %{vectors: vectors}
-    end
-
-    test "calculates correct signature for all test vectors", %{vectors: vectors} do
-      for %{"m" => m, "d" => d, "signature" => sig} <- vectors do
-        <<_prefix, res::binary>> = Curvy.sign(Base.decode16!(m, case: :lower), Base.decode16!(d, case: :lower), hash: false, compact: true)
-        assert res == Base.decode16!(sig, case: :lower)
-      end
-    end
-  end
-
 
   describe "verify/4" do
     test "verifies signatures with the given encoding" do

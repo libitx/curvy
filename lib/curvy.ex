@@ -1,6 +1,6 @@
 defmodule Curvy do
   @moduledoc """
-  ![Curvy](https://github.com/libitx/curvy/raw/master/media/poster.png)
+  ![Curvy](https://raw.githubusercontent.com/libitx/curvy/main/media/poster.png)
 
   ![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
 
@@ -108,7 +108,7 @@ defmodule Curvy do
       true
 
   """
-  use Bitwise, only_operators: true
+  import Bitwise
   alias Curvy.{Curve, Key, Point, Signature}
   import Curvy.Util, only: [encode: 2, decode: 2, inv: 2, mod: 2]
 
@@ -345,8 +345,8 @@ defmodule Curvy do
 
 
   # Get the recovery ID from the point and R value
-  defp get_recovery_id(%{x: x, y: y}, r) when x == r, do: 0 ||| (y &&& 1)
-  defp get_recovery_id(%{x: _x, y: y}, _r), do: 2 ||| (y &&& 1)
+  defp get_recovery_id(%{x: x, y: y}, r) when x == r, do: bor(0, band(y, 1))
+  defp get_recovery_id(%{x: _x, y: y}, _r), do: bor(2, band(y, 1))
 
 
   # Normalizes the given signature if opted for

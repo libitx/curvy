@@ -3,7 +3,7 @@ defmodule Curvy.Signature do
   Module for converting signature R and S values to DER encoded or compact
   binaries.
   """
-  use Bitwise, only_operators: true
+  import Bitwise
   alias Curvy.Curve
 
   defstruct crv: :secp256k1,
@@ -60,7 +60,7 @@ defmodule Curvy.Signature do
   for more info.
   """
   @spec normalize(t) :: t
-  def normalize(%__MODULE__{s: s} = sig) when s > (@crv.n >>> 1) do
+  def normalize(%__MODULE__{s: s} = sig) when s > bsr(@crv.n, 1) do
     sig
     |> Map.put(:s, @crv.n - s)
     |> case do
@@ -123,7 +123,7 @@ defmodule Curvy.Signature do
   # DER encodes the given integer
   defp der_encode_int(int) when is_integer(int) do
     <<n::integer, _::binary>> = bin = :binary.encode_unsigned(int)
-    case n &&& 0x80 do
+    case band(n, 0x80) do
       0 -> bin
       _ -> <<0, bin::binary>>
     end

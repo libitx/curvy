@@ -2,7 +2,7 @@ defmodule Curvy.Point do
   @moduledoc """
   Module used for manipulating ECDSA point coordinates.
   """
-  use Bitwise, only_operators: true
+  import Bitwise
   import Curvy.Util, only: [mod: 2, inv: 2, ipow: 2]
   alias Curvy.{Curve, Key, Signature}
 
@@ -35,7 +35,7 @@ defmodule Curvy.Point do
 
   def from_signature(%Signature{r: r, s: s}, e, recid) do
     rinv = inv(r, @crv.n)
-    prefix = 2 + (recid &&& 1)
+    prefix = 2 + band(recid, 1)
 
     sp = <<prefix, r::big-size(256)>>
     |> Key.from_pubkey()
