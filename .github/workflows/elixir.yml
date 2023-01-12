@@ -12,13 +12,11 @@ jobs:
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: ['23.x', '24.x', '25.x']
+        otp: ['24.x', '25.x']
         elixir: ['1.12.3', '1.13.4', '1.14.2']
         exclude:
-          - otp: '23.x'
-            elixir: '1.14.2'
           - otp: '25.x'
-            elixir: '1.12.2'
+            elixir: '1.12.3'
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
