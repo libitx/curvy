@@ -4,7 +4,7 @@
 
 ![Hex.pm](https://img.shields.io/hexpm/v/curvy?color=informational)
 ![License](https://img.shields.io/github/license/libitx/curvy?color=informational)
-![Build Status](https://img.shields.io/github/workflow/status/libitx/curvy/Elixir%20CI)
+![Build Status](https://img.shields.io/github/actions/workflow/status/libitx/curvy/elixir.yml?branch=main)
 
 Signatures and Bitcoin flavoured crypto written in pure Elixir. Curvy is an implementation of `secp256k1`, an elliptic curve that can be used in signature schemes, asymmetric encryption and ECDH shared secrets.
 
