@@ -49,7 +49,7 @@ ECDSA Keypairs can by converted to public and private key binaries.
 
 ```elixir
 iex> Curvy.Key.to_privkey(key)
-<<privkey::binery-size(32)>>
+<<privkey::binary-size(32)>>
 
 iex> Curvy.Key.to_pubkey(key)
 <<privkey::binary-size(33)>>
@@ -66,10 +66,10 @@ Sign arbitrary messages with a private key. Signatures are deterministic as per 
 iex> sig = Curvy.sign("hello", key)
 <<sig::binary-size(71)>>
 
-iex> sig = Curvy.sign("hello", compact: true)
+iex> sig = Curvy.sign("hello", key, compact: true)
 <<sig::binary-size(65)>>
 
-iex> sig = Curvy.sign("hello", compact: true, encoding: :base64)
+iex> sig = Curvy.sign("hello", key, compact: true, encoding: :base64)
 "IEnXUDXZ3aghwXaq1zu9ax2zJj7N+O4gGREmWBmrldwrIb9B7QuicjwPrrv3ocPpxYO7uCxcw+DR/FcHR9b/YjM="
 ```
 
